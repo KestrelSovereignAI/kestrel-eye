@@ -38,11 +38,12 @@ class OpenAIProvider(VisionProvider):
         act: str,
         expected_elements: list[str],
         layout_description: str,
+        context: str = "",
     ) -> ScreenshotReview:
         """Send screenshot to OpenAI for structured review."""
         b64_data, mime_type = encode_image(image_path)
         user_prompt = build_user_prompt(
-            screenshot_name, act, expected_elements, layout_description
+            screenshot_name, act, expected_elements, layout_description, context
         )
 
         messages = [

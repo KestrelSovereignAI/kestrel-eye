@@ -30,12 +30,19 @@ class AnthropicProvider(VisionProvider):
 
     def __init__(self, model: str = "claude-haiku-4-5-20251001"):
         api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
+        auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
+        if not api_key and not auth_token:
             raise RuntimeError(
-                "ANTHROPIC_API_KEY environment variable is required.\n"
-                "Set it with: export ANTHROPIC_API_KEY=sk-ant-..."
+                "ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN required.\n"
+                "API key: export ANTHROPIC_API_KEY=sk-ant-...\n"
+                "OAuth (Claude Max): export ANTHROPIC_AUTH_TOKEN=..."
             )
-        self.client = anthropic.AsyncAnthropic(api_key=api_key)
+        # SDK picks up from env automatically — just don't pass explicit api_key
+        # when using auth_token, since they're mutually exclusive
+        if auth_token:
+            self.client = anthropic.AsyncAnthropic(auth_token=auth_token)
+        else:
+            self.client = anthropic.AsyncAnthropic(api_key=api_key)
         self.model = model
 
     async def review_screenshot(
@@ -45,11 +52,12 @@ class AnthropicProvider(VisionProvider):
         act: str,
         expected_elements: list[str],
         layout_description: str,
+        context: str = "",
     ) -> ScreenshotReview:
         """Send screenshot to Claude for structured review."""
         b64_data, mime_type = encode_image(image_path)
         user_prompt = build_user_prompt(
-            screenshot_name, act, expected_elements, layout_description
+            screenshot_name, act, expected_elements, layout_description, context
         )
 
         messages = [

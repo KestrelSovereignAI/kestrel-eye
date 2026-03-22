@@ -40,16 +40,22 @@ def build_user_prompt(
     act: str,
     expected_elements: list[str],
     layout_description: str,
+    context: str = "",
 ) -> str:
     """Build the user prompt for a screenshot review."""
     elements_list = "\n".join(f"- {e}" for e in expected_elements)
-    return (
-        f"Review this screenshot: {screenshot_name}\n"
-        f"Part of: {act}\n\n"
-        f"Expected elements (check each one):\n{elements_list}\n\n"
-        f"Expected layout:\n{layout_description}\n\n"
-        "Examine the screenshot carefully and report your findings for each expected element."
-    )
+    parts = [
+        f"Review this screenshot: {screenshot_name}",
+        f"Part of: {act}",
+    ]
+    if context:
+        parts.append(f"\nDemo context:\n{context}")
+    parts.extend([
+        f"\nExpected elements (check each one):\n{elements_list}",
+        f"\nExpected layout:\n{layout_description}",
+        "\nExamine the screenshot carefully and report your findings for each expected element.",
+    ])
+    return "\n".join(parts)
 
 
 def encode_image(image_path: Path) -> tuple[str, str]:
@@ -94,6 +100,7 @@ class VisionProvider(ABC):
         act: str,
         expected_elements: list[str],
         layout_description: str,
+        context: str = "",
     ) -> ScreenshotReview:
         """Send screenshot + expectations to vision model, get structured review.
 
@@ -103,6 +110,7 @@ class VisionProvider(ABC):
             act: Logical grouping (e.g. 'Act 1: Cryptographic Identity').
             expected_elements: List of things that should be visible.
             layout_description: Description of expected layout.
+            context: Demo script narration/context for this screenshot.
 
         Returns:
             Structured review of the screenshot.

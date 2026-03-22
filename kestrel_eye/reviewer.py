@@ -102,6 +102,7 @@ class DemoReviewer:
                 act=expectation.act,
                 expected_elements=expectation.expected,
                 layout_description=expectation.layout,
+                context=expectation.context,
             )
         except Exception as e:
             logger.error(

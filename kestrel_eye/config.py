@@ -23,6 +23,7 @@ class ScreenshotExpectation(BaseModel):
     severity: Literal["critical", "warning"] = "critical"
     expected: list[str]
     layout: str
+    context: str = ""  # Demo script narration/context for this screenshot
 
 
 class ModelConfig(BaseModel):
