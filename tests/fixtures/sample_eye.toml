@@ -1,0 +1,23 @@
+[eye]
+name = "Test Project"
+screenshot_dir = "tests/fixtures"
+test_cmd = "echo 'test screenshots ready'"
+
+[eye.model]
+provider = "anthropic"
+model = "claude-haiku-4-5-20251001"
+
+[eye.github]
+repo = "KestrelSovereignAI/kestrel-eye"
+labels = ["kestrel-eye", "automated"]
+
+[[eye.screenshots]]
+name = "sample_screenshot.png"
+act = "Act 1: Identity"
+severity = "critical"
+expected = [
+    "Agent name visible",
+    "DID string starting with did:pkh:",
+    "Identity panel layout",
+]
+layout = "Identity panel with agent name at top, DID below"

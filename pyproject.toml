@@ -1,0 +1,33 @@
+[project]
+name = "kestrel-eye"
+version = "0.1.0"
+description = "Vision-verified E2E feedback loop — cheap AI reviews your screenshots until they're perfect"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "anthropic>=0.40.0",
+    "openai>=1.50.0",
+    "pydantic>=2.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+resize = ["Pillow>=10.0"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[project.scripts]
+kestrel-eye = "kestrel_eye.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "integration: marks tests that call real APIs (deselect with '-m \"not integration\"')",
+]
