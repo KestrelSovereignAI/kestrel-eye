@@ -20,7 +20,16 @@ def create_provider(config: EyeConfig, model_override: str = "") -> VisionProvid
     provider_name = config.model.provider
     model = model_override or config.model.model
 
-    if provider_name == "anthropic":
+    if provider_name == "claude_sdk":
+        from kestrel_eye.providers.claude_sdk import ClaudeSDKProvider
+        return ClaudeSDKProvider(model=model)
+    elif provider_name == "anthropic":
+        # Auto-upgrade to claude_sdk if no API key/token available
+        import os
+        if not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+            logger.info("No ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN — using claude_sdk provider (OAuth)")
+            from kestrel_eye.providers.claude_sdk import ClaudeSDKProvider
+            return ClaudeSDKProvider(model=model)
         from kestrel_eye.providers.anthropic import AnthropicProvider
         return AnthropicProvider(model=model)
     elif provider_name == "openai":
