@@ -14,6 +14,8 @@ from kestrel_eye.report import format_failure_summary, print_iteration_summary
 from kestrel_eye.reporter import GitHubReporter
 from kestrel_eye.runner import EyeRunner, RunnerConfig
 
+logger = logging.getLogger(__name__)
+
 
 def create_provider(config: EyeConfig, model_override: str = "") -> VisionProvider:
     """Create the appropriate vision provider from config."""
