@@ -21,27 +21,28 @@ def create_provider(config: EyeConfig, model_override: str = "") -> VisionProvid
     """Create the appropriate vision provider from config."""
     provider_name = config.model.provider
     model = model_override or config.model.model
+    max_tokens = config.model.max_tokens
 
     if provider_name == "claude_sdk":
         from kestrel_eye.providers.claude_sdk import ClaudeSDKProvider
-        return ClaudeSDKProvider(model=model)
+        return ClaudeSDKProvider(model=model, max_tokens=max_tokens)
     elif provider_name == "anthropic":
         # Auto-upgrade to claude_sdk if no API key/token available
         import os
         if not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("ANTHROPIC_AUTH_TOKEN"):
             logger.info("No ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN — using claude_sdk provider (OAuth)")
             from kestrel_eye.providers.claude_sdk import ClaudeSDKProvider
-            return ClaudeSDKProvider(model=model)
+            return ClaudeSDKProvider(model=model, max_tokens=max_tokens)
         from kestrel_eye.providers.anthropic import AnthropicProvider
-        return AnthropicProvider(model=model)
+        return AnthropicProvider(model=model, max_tokens=max_tokens)
     elif provider_name == "openai":
         from kestrel_eye.providers.openai import OpenAIProvider
-        return OpenAIProvider(model=model)
+        return OpenAIProvider(model=model, max_tokens=max_tokens)
     else:
         raise ValueError(f"Unknown provider: {provider_name}")
 
 
-def cmd_run(args: argparse.Namespace) -> int:
+async def cmd_run(args: argparse.Namespace) -> int:
     """Execute run command."""
     config = load_config(Path(args.config))
     provider = create_provider(config, args.model or "")
@@ -55,9 +56,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     runner = EyeRunner(runner_config, provider)
 
     if args.loop:
-        report = asyncio.run(runner.run_loop())
+        report = await runner.run_loop()
     else:
-        report = asyncio.run(runner.run_once())
+        report = await runner.run_once()
 
     exit_code = runner.get_exit_code(report)
 
@@ -67,12 +68,12 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     if args.file_issues and config.github and exit_code != 0:
         reporter = GitHubReporter(config.github.repo, config.github.labels)
-        asyncio.run(reporter.report(report, config.name))
+        await reporter.report(report, config.name)
 
     return exit_code
 
 
-def cmd_review(args: argparse.Namespace) -> int:
+async def cmd_review(args: argparse.Namespace) -> int:
     """Execute review command (skip test execution)."""
     config = load_config(Path(args.config))
 
@@ -83,7 +84,7 @@ def cmd_review(args: argparse.Namespace) -> int:
     runner_config = RunnerConfig(eye_config=config)
     runner = EyeRunner(runner_config, provider)
 
-    report = asyncio.run(runner.run_review_only())
+    report = await runner.run_review_only()
     print_iteration_summary(report)
 
     exit_code = runner.get_exit_code(report)
@@ -110,6 +111,9 @@ test_cmd = "npx playwright test"
 [eye.model]
 provider = "anthropic"
 model = "claude-haiku-4-5-20251001"
+# max_tokens = 4096
+# timeout = 300
+# max_concurrency = 5
 
 # [eye.github]
 # repo = "owner/repo"
@@ -246,26 +250,29 @@ def main() -> None:
         format="%(levelname)s: %(message)s",
     )
 
-    commands = {
-        "run": cmd_run,
-        "review": cmd_review,
+    sync_commands = {
         "init": cmd_init,
         "validate": cmd_validate,
     }
+    async_commands = {
+        "run": cmd_run,
+        "review": cmd_review,
+    }
 
-    handler = commands.get(args.command)
-    if handler:
-        try:
-            sys.exit(handler(args))
-        except KeyboardInterrupt:
-            print("\nInterrupted.", file=sys.stderr)
-            sys.exit(130)
-        except Exception as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(2)
-    else:
-        parser.print_help()
-        sys.exit(0)
+    try:
+        if args.command in async_commands:
+            sys.exit(asyncio.run(async_commands[args.command](args)))
+        elif args.command in sync_commands:
+            sys.exit(sync_commands[args.command](args))
+        else:
+            parser.print_help()
+            sys.exit(0)
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=sys.stderr)
+        sys.exit(130)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(2)
 
 
 if __name__ == "__main__":

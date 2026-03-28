@@ -92,6 +92,8 @@ def encode_image(image_path: Path) -> tuple[str, str]:
 class VisionProvider(ABC):
     """Base class for vision model providers."""
 
+    max_tokens: int = 4096
+
     @abstractmethod
     async def review_screenshot(
         self,

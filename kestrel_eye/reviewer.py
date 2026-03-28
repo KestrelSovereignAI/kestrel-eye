@@ -1,5 +1,6 @@
 """Core reviewer — reviews all screenshots against expectations."""
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,7 @@ class DemoReviewer:
     def __init__(self, config: EyeConfig, provider: VisionProvider):
         self.config = config
         self.provider = provider
+        self._semaphore = asyncio.Semaphore(config.model.max_concurrency)
 
     async def review_all(
         self,
@@ -38,11 +40,14 @@ class DemoReviewer:
         Returns:
             Complete ReviewReport with all findings.
         """
-        reviews: list[ScreenshotReview] = []
 
-        for expectation in self.config.screenshots:
-            review = await self.review_single(expectation)
-            reviews.append(review)
+        async def _bounded_review(expectation: ScreenshotExpectation) -> ScreenshotReview:
+            async with self._semaphore:
+                return await self.review_single(expectation)
+
+        reviews = await asyncio.gather(
+            *[_bounded_review(exp) for exp in self.config.screenshots]
+        )
 
         passed = sum(1 for r in reviews if r.overall_status == "pass")
         failed = sum(1 for r in reviews if r.overall_status == "fail")

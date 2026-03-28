@@ -29,8 +29,11 @@ class ScreenshotExpectation(BaseModel):
 class ModelConfig(BaseModel):
     """Vision model configuration."""
 
-    provider: Literal["anthropic", "openai"] = "anthropic"
+    provider: Literal["anthropic", "openai", "claude_sdk"] = "anthropic"
     model: str = "claude-haiku-4-5-20251001"
+    max_tokens: int = 4096
+    timeout: int = 300
+    max_concurrency: int = 5
 
 
 class GitHubConfig(BaseModel):

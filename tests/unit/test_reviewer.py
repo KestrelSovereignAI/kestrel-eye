@@ -100,6 +100,33 @@ class TestReviewAll:
         assert mock_provider.review_screenshot.call_count == 2
 
     @pytest.mark.asyncio
+    async def test_concurrent_reviews(self, mock_provider, tmp_path):
+        """review_all uses asyncio.gather for concurrent execution."""
+        import asyncio
+
+        names = [f"{i}.png" for i in range(5)]
+        for name in names:
+            (tmp_path / name).write_bytes(b"fake")
+
+        config = _make_config(str(tmp_path), [_make_expectation(n) for n in names])
+
+        call_order = []
+
+        async def _track_review(**kwargs):
+            call_order.append(kwargs["screenshot_name"])
+            await asyncio.sleep(0)
+            return _make_passing_review(kwargs["screenshot_name"])
+
+        mock_provider.review_screenshot.side_effect = _track_review
+
+        reviewer = DemoReviewer(config, mock_provider)
+        report = await reviewer.review_all()
+
+        assert report.total_screenshots == 5
+        assert report.passed == 5
+        assert mock_provider.review_screenshot.call_count == 5
+
+    @pytest.mark.asyncio
     async def test_mixed_results(self, mock_provider, tmp_path):
         (tmp_path / "a.png").write_bytes(b"fake")
         (tmp_path / "b.png").write_bytes(b"fake")

@@ -28,7 +28,7 @@ REVIEW_TOOL_SCHEMA = {
 class AnthropicProvider(VisionProvider):
     """Review screenshots using Anthropic Claude vision models."""
 
-    def __init__(self, model: str = "claude-haiku-4-5-20251001"):
+    def __init__(self, model: str = "claude-haiku-4-5-20251001", max_tokens: int = 4096):
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
         if not api_key and not auth_token:
@@ -44,6 +44,7 @@ class AnthropicProvider(VisionProvider):
         else:
             self.client = anthropic.AsyncAnthropic(api_key=api_key)
         self.model = model
+        self.max_tokens = max_tokens
 
     async def review_screenshot(
         self,
@@ -84,7 +85,7 @@ class AnthropicProvider(VisionProvider):
             try:
                 response = await self.client.messages.create(
                     model=self.model,
-                    max_tokens=1024,
+                    max_tokens=self.max_tokens,
                     system=SYSTEM_PROMPT,
                     messages=messages,
                     tools=[REVIEW_TOOL_SCHEMA],
