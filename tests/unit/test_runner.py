@@ -163,6 +163,30 @@ class TestRunLoop:
         assert runner.history[0].passed == 2
 
 
+class TestConfigurableTimeout:
+    @pytest.mark.asyncio
+    async def test_uses_config_timeout(self, mock_provider, tmp_path):
+        """Runner uses timeout from config, not hardcoded value."""
+        (tmp_path / "a.png").write_bytes(b"fake")
+        config = _make_config(str(tmp_path), "echo test")
+        config.model.timeout = 60
+        runner = EyeRunner(RunnerConfig(eye_config=config), mock_provider)
+
+        with patch("kestrel_eye.runner.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+            mock_proc = MagicMock()
+            mock_proc.returncode = 0
+            mock_wait.return_value = (b"", b"")
+
+            with patch("kestrel_eye.runner.asyncio.create_subprocess_shell", new_callable=AsyncMock) as mock_sub:
+                mock_sub.return_value = mock_proc
+                mock_proc.communicate = AsyncMock(return_value=(b"", b""))
+                await runner.run_tests()
+                # Verify timeout kwarg passed to wait_for
+                mock_wait.assert_called_once()
+                call_kwargs = mock_wait.call_args
+                assert call_kwargs.kwargs.get("timeout") == 60 or call_kwargs[1].get("timeout") == 60 or (len(call_kwargs[0]) > 1 and call_kwargs[0][1] == 60)
+
+
 class TestExitCodes:
     def test_all_pass_is_0(self, mock_provider, tmp_path):
         config = _make_config(str(tmp_path))

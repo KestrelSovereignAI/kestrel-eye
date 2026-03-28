@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 class ClaudeSDKProvider(VisionProvider):
     """Review screenshots using Claude Agent SDK (inherits OAuth from claude CLI)."""
 
-    def __init__(self, model: str = "claude-haiku-4-5-20251001"):
+    def __init__(self, model: str = "claude-haiku-4-5-20251001", max_tokens: int = 4096):
         self.model = model
+        self.max_tokens = max_tokens
 
     async def review_screenshot(
         self,

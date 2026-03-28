@@ -68,8 +68,9 @@ class EyeRunner:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
+            timeout = self.config.eye_config.model.timeout
             stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=300
+                proc.communicate(), timeout=timeout
             )
 
             if proc.returncode != 0:
@@ -81,7 +82,7 @@ class EyeRunner:
                     logger.debug("test_cmd stderr: %s", stderr.decode()[:500])
 
         except asyncio.TimeoutError:
-            logger.error("test_cmd timed out after 300s")
+            logger.error("test_cmd timed out after %ds", timeout)
             return self._has_screenshots()
         except Exception as e:
             logger.error("Failed to run test_cmd: %s", e)

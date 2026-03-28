@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class OpenAIProvider(VisionProvider):
     """Review screenshots using OpenAI vision models."""
 
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str = "gpt-4o-mini", max_tokens: int = 4096):
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise RuntimeError(
@@ -30,6 +30,7 @@ class OpenAIProvider(VisionProvider):
             )
         self.client = openai.AsyncOpenAI(api_key=api_key)
         self.model = model
+        self.max_tokens = max_tokens
 
     async def review_screenshot(
         self,
@@ -70,7 +71,7 @@ class OpenAIProvider(VisionProvider):
             try:
                 response = await self.client.chat.completions.create(
                     model=self.model,
-                    max_tokens=1024,
+                    max_tokens=self.max_tokens,
                     messages=messages,
                     response_format={
                         "type": "json_schema",
